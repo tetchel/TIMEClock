@@ -20,15 +20,22 @@ namespace TimeClock {
         private MenuItem timer;
 
         private const int POLL_FREQUENCY = 10;          //in seconds, how often to check if user is not locked
-                                                        //decrease for increased precision and cpu usage
-        private const int NOTIFY_FREQUENCY = 1;         //number of clock ticks that must pass before user is notified
+                                                        //decrease for increased (precision and cpu usage)
+        private const int POLLS_TO_MINS = 60/POLL_FREQUENCY;            //# polls per minute
+        private const int NOTIFY_FREQUENCY_MINS = 60;                   //notify user every x minutes
+        //above two are just to make changing this next value easier
+        private const int NOTIFY_FREQUENCY = NOTIFY_FREQUENCY_MINS*POLLS_TO_MINS;          //in ticks (this is what's used in the code).
 
         private const string time_format = @"hh\:mm\:ss";
 
         //counts POLLs
         private int clock = 0;
         //toggled when user locks/unlocks workstation
-        private bool locked = false;
+        private bool workstation_locked = false;
+        //terminates waiting thread when exit is called
+        private bool isRunning = true;
+
+        private object _lock = new object();
 
         public TimeClockContext() {
             start = DateTime.Now;
@@ -41,7 +48,10 @@ namespace TimeClock {
                 ContextMenu = cm,
                 Visible = true
             };
-            ni.Click += mainApp;
+            ni.DoubleClick += mainApp;
+            ni.BalloonTipTitle = "TIMEClock is now running";
+            ni.BalloonTipText = "Started at " + start.ToString(time_format) + "\nYou will be notified every " + POLL_FREQUENCY * NOTIFY_FREQUENCY + "s";
+            ni.ShowBalloonTip(5000);
 
             //locked workstation listener
             SystemEvents.SessionSwitch += new SessionSwitchEventHandler(SystemEvents_SessionSwitch);
@@ -54,16 +64,18 @@ namespace TimeClock {
         //loop eternally, updating time every minute
         //needs to be done in a separate thread so that UI thread still works
         void loop() {
-            while (true) {
-                Thread.Sleep(POLL_FREQUENCY * 1000);
-                //only count time if !locked
-                if(!locked) {
+            while (isRunning) {
+                lock(_lock) {
+                    Monitor.Wait(_lock, 1000 * POLL_FREQUENCY);
+                }
+                //only count time if workstation !locked
+                if(!workstation_locked) {
                     clock++;
                 }
 
                 //notify when locked
                 if (clock % NOTIFY_FREQUENCY == 0) {
-                    ni.BalloonTipTitle = "Greetings";
+                    ni.BalloonTipTitle = "TIMEClock";
                     ni.BalloonTipText = "You have been working for " + getElapsed();
                     ni.ShowBalloonTip(3000);
                 }
@@ -88,15 +100,19 @@ namespace TimeClock {
 
         private void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e) {
             if (e.Reason == SessionSwitchReason.SessionLock) {
-                locked = true;
+                workstation_locked = true;
             }
             else if (e.Reason == SessionSwitchReason.SessionUnlock) {
-                locked = false;
+                workstation_locked = false;
             }
         }
 
         //exit application
         void Exit(object sender, EventArgs e) {
+            lock(_lock) {
+                Monitor.Pulse(_lock);
+            }
+            isRunning = false;
             ni.Visible = false;
             Application.Exit();
         }

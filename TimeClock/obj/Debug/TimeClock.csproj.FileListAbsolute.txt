@@ -1,8 +1,0 @@
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\bin\Debug\TimeClock.exe.config
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\bin\Debug\TimeClock.exe
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\bin\Debug\TimeClock.pdb
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\obj\Debug\TimeClock.csprojResolveAssemblyReference.cache
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\obj\Debug\TimeClock.Properties.Resources.resources
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\obj\Debug\TimeClock.csproj.GenerateResource.Cache
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\obj\Debug\TimeClock.exe
-C:\Users\Tim\Documents\Programs\csharp\TimeClock\TimeClock\TimeClock\obj\Debug\TimeClock.pdb
