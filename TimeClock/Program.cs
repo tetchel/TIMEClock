@@ -17,9 +17,8 @@ namespace TimeClock {
     public class TimeClockContext : ApplicationContext {
         private NotifyIcon ni;
         private DateTime start;
-        private MenuItem timer;
 
-        private const int POLL_FREQUENCY = 10;          //in seconds, how often to check if user is not locked
+        private const int POLL_FREQUENCY = 60;          //in seconds, how often to check if user is not locked
                                                         //decrease for increased (precision and cpu usage)
         private const int POLLS_TO_MINS = 60/POLL_FREQUENCY;            //# polls per minute
         private const int NOTIFY_FREQUENCY_MINS = 10;                   //notify user every x minutes
@@ -39,9 +38,7 @@ namespace TimeClock {
 
         public TimeClockContext() {
             start = DateTime.Now;
-            timer = new MenuItem();
-            ContextMenu cm = new ContextMenu(new MenuItem[] { timer, new MenuItem("Open", mainApp), new MenuItem("Exit", Exit) });
-            cm.Popup += onPopUp;
+            ContextMenu cm = new ContextMenu(new MenuItem[] { new MenuItem("Open", mainApp), new MenuItem("Exit", Exit) });
 
             ni = new NotifyIcon() {
                 Icon = Properties.Resources.AppIcon,
@@ -54,6 +51,7 @@ namespace TimeClock {
             ni.BalloonTipText = "Started at " + start.ToString(time_format) + 
                 "\nYou will be notified every " + (POLL_FREQUENCY * NOTIFY_FREQUENCY)/60 + " minutes.";
             ni.ShowBalloonTip(5000);
+            ni.Text = getElapsed();
 
             //locked workstation listener
             SystemEvents.SessionSwitch += new SessionSwitchEventHandler(SystemEvents_SessionSwitch);
@@ -75,18 +73,15 @@ namespace TimeClock {
                     clock++;
                 }
 
-                //notify when locked
+                //display notification
                 if (clock % NOTIFY_FREQUENCY == 0) {
                     ni.BalloonTipTitle = "TIMEClock";
-                    ni.BalloonTipText = "You have been working for " + getElapsed();
+                    string elapsed = getElapsed();
+                    ni.BalloonTipText = "You have been working for " + elapsed;
+                    ni.Text = elapsed;
                     ni.ShowBalloonTip(3000);
                 }
             }
-        }
-
-        //called when context menu is opened
-        void onPopUp(object sender, EventArgs e) {
-            timer.Text = getElapsed();
         }
 
         void mainApp(object sender, EventArgs e) {
