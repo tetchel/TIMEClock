@@ -22,11 +22,11 @@ namespace TimeClock {
         private const int POLL_FREQUENCY = 10;          //in seconds, how often to check if user is not locked
                                                         //decrease for increased (precision and cpu usage)
         private const int POLLS_TO_MINS = 60/POLL_FREQUENCY;            //# polls per minute
-        private const int NOTIFY_FREQUENCY_MINS = 60;                   //notify user every x minutes
+        private const int NOTIFY_FREQUENCY_MINS = 10;                   //notify user every x minutes
         //above two are just to make changing this next value easier
         private const int NOTIFY_FREQUENCY = NOTIFY_FREQUENCY_MINS*POLLS_TO_MINS;          //in ticks (this is what's used in the code).
 
-        private const string time_format = @"hh\:mm\:ss";
+        private const string time_format = @"hh\:mm";
 
         //counts POLLs
         private int clock = 0;
@@ -49,8 +49,10 @@ namespace TimeClock {
                 Visible = true
             };
             ni.DoubleClick += mainApp;
+
             ni.BalloonTipTitle = "TIMEClock is now running";
-            ni.BalloonTipText = "Started at " + start.ToString(time_format) + "\nYou will be notified every " + POLL_FREQUENCY * NOTIFY_FREQUENCY + "s";
+            ni.BalloonTipText = "Started at " + start.ToString(time_format) + 
+                "\nYou will be notified every " + (POLL_FREQUENCY * NOTIFY_FREQUENCY)/60 + " minutes.";
             ni.ShowBalloonTip(5000);
 
             //locked workstation listener
