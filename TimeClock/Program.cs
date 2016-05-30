@@ -71,14 +71,13 @@ namespace TimeClock {
                 //only count time if workstation !locked
                 if(!workstation_locked) {
                     clock++;
+                    ni.Text = getElapsed();
                 }
 
                 //display notification
                 if (clock % NOTIFY_FREQUENCY == 0) {
                     ni.BalloonTipTitle = "TIMEClock";
-                    string elapsed = getElapsed();
-                    ni.BalloonTipText = "You have been working for " + elapsed;
-                    ni.Text = elapsed;
+                    ni.BalloonTipText = "You have been working for " + getElapsed();
                     ni.ShowBalloonTip(3000);
                 }
             }
