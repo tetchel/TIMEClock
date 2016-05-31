@@ -16,7 +16,6 @@ namespace TimeClock {
         ////////// UI objects //////////
         private NotifyIcon ni;
         private PopUp msgbox = new PopUp();
-        private Label output_label;
 
         ////////// Constants //////////
         private const int POLL_FREQUENCY = 10;          //in seconds, how often to check if user is not locked
@@ -72,7 +71,6 @@ namespace TimeClock {
             msgbox.FormBorderStyle = FormBorderStyle.FixedSingle;
             //msgbox.Size = new System.Drawing.Size(500, 200);
             //get the label object to be updated
-            output_label = (Label)msgbox.Controls["output"];
             updateMsgBoxLabel();
 
             //locked workstation listener
@@ -119,6 +117,7 @@ namespace TimeClock {
         }
 
         //return the elapsed time in a nice format of hours and minutes
+        //ignores seconds so no good for debugging
         string getNiceElapsed() {
             TimeSpan t = TimeSpan.FromSeconds(clock * POLL_FREQUENCY);
             string hours_str = t.Hours == 1 ? "hour" : "hours",
@@ -132,16 +131,25 @@ namespace TimeClock {
             }
         }
 
+        //call the thread-safe UI modifying function with the new message
         void updateMsgBoxLabel() {
              updateMsgBoxCallback(
                  "You clocked in at " + start.ToString(TIME_FORMAT) + "\n" +
-                "Working for: " + getSimpleElapsed()
+                "Working for: " + getNiceElapsed()
                 );
         }
 
+        //I don't fully understand this, but it allows thread-safe manipulation of UI elements
+        
         void updateMsgBoxCallback(string s) {
+            //callback self using Invoke
             SetTextCallback d = new SetTextCallback(updateMsgBoxCallback);
-            if(output_label.InvokeRequired) {
+            //reacquire output_label
+            Label output_label = (Label)msgbox.Controls["output"];
+            if(output_label == null) {
+                return;
+            }
+            else if (output_label.InvokeRequired) {
                 output_label.Invoke(d, new object[] { s });
             }
             else {
@@ -160,6 +168,7 @@ namespace TimeClock {
 
         //exit application
         void Exit(object sender, EventArgs e) {
+            msgbox.Close();
             //interrupt the wait
             lock(_lock) {
                 Monitor.Pulse(_lock);
