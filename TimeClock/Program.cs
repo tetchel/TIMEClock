@@ -15,18 +15,25 @@ namespace TimeClock {
     }
 
     public class TimeClockContext : ApplicationContext {
+        ////////// UI objects //////////
         private NotifyIcon ni;
-        private DateTime start;
+        private PopUp msgbox = new PopUp();
+        private Label output_label;
 
+        ////////// Constants //////////
         private const int POLL_FREQUENCY = 10;          //in seconds, how often to check if user is not locked
                                                         //decrease for increased precision and cpu usage
         private const int POLLS_TO_MINS = 60/POLL_FREQUENCY;            //# polls per minute
-        private const int NOTIFY_FREQUENCY_MINS = 60;                   //notify user every x minutes
+        private const int NOTIFY_FREQUENCY_MINS = 1;                   //notify user every x minutes
         //above two are just to make changing this next value easier
         private const int NOTIFY_FREQUENCY = NOTIFY_FREQUENCY_MINS*POLLS_TO_MINS;          //in ticks (this is what's used in the code).
 
-        private const string time_format = @"hh\:mm";
+        private const string TIME_FORMAT = @"hh\:mm";
 
+        private const string APP_NAME = "TIMEClock";
+
+        ////////// App state tracking //////////
+        private DateTime start;
         //counts POLLs
         private int clock = 0;
         //toggled when user locks/unlocks workstation
@@ -34,6 +41,7 @@ namespace TimeClock {
         //terminates waiting thread when exit is called
         private bool isRunning = true;
 
+        // Used to lock Monitor to signal sleeping thread
         private object _lock = new object();
 
         public TimeClockContext() {
@@ -47,14 +55,21 @@ namespace TimeClock {
             };
             ni.DoubleClick += mainApp;
 
-            ni.BalloonTipTitle = "TIMEClock is now running";
-            ni.BalloonTipText = "Started at " + start.ToString(time_format) + 
+            ni.BalloonTipTitle = APP_NAME + " is now running";
+            ni.BalloonTipText = "Started at " + start.ToString(TIME_FORMAT) + 
                 "\nYou will be notified every " + (POLL_FREQUENCY * NOTIFY_FREQUENCY)/60 + " minutes.";
             ni.ShowBalloonTip(5000);
-            ni.Text = getElapsed();
+            ni.Text = getSimpleElapsed();
+
+            //initialize the msgbox
+            msgbox.Text = APP_NAME;
+            msgbox.FormBorderStyle = FormBorderStyle.FixedSingle;
+            msgbox.Size = new System.Drawing.Size(200, 50);
+            //get the label object to be updated
+            output_label = (Label)msgbox.Controls["output"];
 
             //locked workstation listener
-            SystemEvents.SessionSwitch += new SessionSwitchEventHandler(SystemEvents_SessionSwitch);
+            SystemEvents.SessionSwitch += new SessionSwitchEventHandler(onSessionSwitch);
 
             //thread that sleeps and then updates user every NOTIFY_FREQUENCY
             Thread loopthread = new Thread(new ThreadStart(loop));
@@ -65,19 +80,23 @@ namespace TimeClock {
         //needs to be done in a separate thread so that UI thread still works
         void loop() {
             while (isRunning) {
+                //wait for POLL_FREQUENCY secs or until interrupt
                 lock(_lock) {
                     Monitor.Wait(_lock, 1000 * POLL_FREQUENCY);
                 }
-                //only count time if workstation !locked
+
+                //only count time and recalculate if workstation !locked
                 if(!workstation_locked) {
                     clock++;
-                    ni.Text = getElapsed();
+                    ni.Text = getSimpleElapsed();
+                    msgbox.Text = "You clocked in at " + start.ToString(TIME_FORMAT) + "\n" +
+                            "Working for: " + getNiceElapsed();
                 }
 
                 //display notification
                 if (clock % NOTIFY_FREQUENCY == 0) {
-                    ni.BalloonTipTitle = "TIMEClock";
-                    ni.BalloonTipText = "You have been working for " + getElapsed();
+                    ni.BalloonTipTitle = APP_NAME;
+                    ni.BalloonTipText = getNiceElapsed();
                     ni.ShowBalloonTip(3000);
                 }
             }
@@ -85,16 +104,28 @@ namespace TimeClock {
 
         void mainApp(object sender, EventArgs e) {
             //TODO update while dialog is open (even better, when context menu is open too)
-            MessageBox.Show("You clocked in at " + start.ToString(time_format) + "\n" +
-                            "Working for: " + getElapsed());
+            msgbox.Show();
         }
 
         //calculates the time elapsed and returns as string
-        string getElapsed() {
-           return DateTime.Now.Subtract(start).ToString(time_format);
+        string getSimpleElapsed() {
+            return TimeSpan.FromSeconds(clock * POLL_FREQUENCY).ToString(TIME_FORMAT);
         }
 
-        private void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e) {
+        string getNiceElapsed() {
+            TimeSpan t = TimeSpan.FromSeconds(clock * POLL_FREQUENCY);
+            string hours_str = t.Hours == 1 ? "hour" : "hours",
+                    mins_str = t.Minutes == 1 ? "minute" : "minutes";
+
+            if (t.Minutes == 0) {
+                return String.Format("{0} {1}.", t.Hours, hours_str);
+            }
+            else {
+                return String.Format("{0} {1}, {2} {3}", t.Hours, hours_str, t.Minutes, mins_str);
+            }
+        }
+
+        private void onSessionSwitch(object sender, SessionSwitchEventArgs e) {
             if (e.Reason == SessionSwitchReason.SessionLock) {
                 workstation_locked = true;
             }
@@ -105,6 +136,7 @@ namespace TimeClock {
 
         //exit application
         void Exit(object sender, EventArgs e) {
+            //interrupt the wait
             lock(_lock) {
                 Monitor.Pulse(_lock);
             }
