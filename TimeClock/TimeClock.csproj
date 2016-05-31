@@ -53,7 +53,7 @@
     <Compile Include="PopUp.Designer.cs">
       <DependentUpon>PopUp.cs</DependentUpon>
     </Compile>
-    <Compile Include="Program.cs" />
+    <Compile Include="TimeClock.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="PopUp.resx">
       <DependentUpon>PopUp.cs</DependentUpon>
