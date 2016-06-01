@@ -24,6 +24,8 @@ namespace TimeClock {
                                                         //decrease for increased precision and cpu usage
         private const int POLLS_TO_MINS = 60/POLL_FREQUENCY;            //# polls per minute
 
+        private const int DEFAULT_NOTIFY_FREQUENCY = 60;
+
         private const int SHORT_NOTIF_DURATION  = 3000;
         private const int LONG_NOTIF_DURATION   = 6000;
 
@@ -55,7 +57,7 @@ namespace TimeClock {
 
             //initialize notify frequency fields
             //TODO get freq_in_mins from a file
-            notify_freq_in_mins = 1;
+            notify_freq_in_mins = DEFAULT_NOTIFY_FREQUENCY;
             notify_freq_in_ticks = notify_freq_in_mins * POLLS_TO_MINS;
 
             //initialize UI
@@ -134,8 +136,8 @@ namespace TimeClock {
         //and tells the user how often they will be notified
         string getIntervalChangedOutput() {
             int freq_mins = (POLL_FREQUENCY * notify_freq_in_ticks) / 60;
-            return "You will be notified every " + freq_mins +
-                (freq_mins == 1 ? " minute" : " minutes") + ".";
+            return "You will be notified every "  +
+                (freq_mins == 1 ? "minute" : freq_mins + " minutes") + ".";
         }
 
         //calculates the time elapsed and returns as string
