@@ -25,7 +25,7 @@ namespace TimeClock {
             int input;
             //setNotifyFreq will display an error message
             if (!int.TryParse(inputIntervalTB.Text, out input) || input <= 0) {
-                MessageBox.Show("Notification Interval must be an integer greater than 0.");
+                MessageBox.Show("Notification Interval must be an integer greater than 0.", "Invalid Input");
             }
             else {
                 //see if user changed it
